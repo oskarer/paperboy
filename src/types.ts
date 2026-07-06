@@ -45,5 +45,7 @@ export interface PageSpec {
 export interface IssueData {
   date: string;
   dateSv: string;
+  /** When this issue was generated — the next issue only takes news newer than this */
+  generatedAt: string;
   pages: PageSpec[];
 }

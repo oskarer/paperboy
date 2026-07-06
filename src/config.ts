@@ -17,8 +17,13 @@ export const config = {
     { pageNumber: 5, title: "Kultur & Sport", brief: "kultur och sport" },
   ],
   candidates: {
+    /** Fallback freshness window when there is no previous issue and no schedule */
     maxAgeHours: 26,
-    minPerSource: 10,
+    /** Never look back further than this, even after a long pause */
+    maxLookbackDays: 14,
+    /** Overlap into the previous window so publish-time skew can't lose an article
+     *  (the cross-issue history filter prevents actual repeats) */
+    overlapMinutes: 60,
     maxPerSource: 30,
     /** How many past issues to check so an article never runs twice */
     historyIssues: 7,

@@ -11,8 +11,11 @@ GP) but the source catalog is easy to extend.
 
 ## How it works
 
-1. **Fetch** — RSS feeds from all enabled sources (`src/sources.ts`); articles
-   printed in the last 7 issues are filtered out (`src/history.ts`)
+1. **Fetch** — RSS feeds from all enabled sources (`src/sources.ts`). Only news
+   published since the previous issue is considered (with no previous issue,
+   since the previous scheduled slot — a weekdays-only paper covers the whole
+   weekend on Monday), and articles printed in the last 7 issues are filtered
+   out (`src/history.ts`)
 2. **Select** — a cheap text model (gpt-5.4-nano) acts as news editor: picks
    stories, weights your interests, assigns them to 5 themed pages, then runs
    a dedup pass so the same event never appears twice

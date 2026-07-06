@@ -35,3 +35,19 @@ export function nextRun(schedule: Schedule, now: Date): Date | null {
   }
   return null;
 }
+
+/** The latest scheduled fire time strictly before `now`, or null when disabled.
+ *  Used as the news-freshness cutoff when no previous issue exists — e.g. a
+ *  weekdays-only schedule makes Monday's paper cover the whole weekend. */
+export function previousScheduledAt(schedule: Schedule, now: Date): Date | null {
+  if (!schedule.enabled || schedule.days.length === 0) return null;
+  const [h, m] = schedule.time.split(":").map(Number);
+  for (let offset = 0; offset <= 7; offset++) {
+    const candidate = new Date(now);
+    candidate.setDate(candidate.getDate() - offset);
+    candidate.setHours(h ?? 0, m ?? 0, 0, 0);
+    if (candidate >= now) continue;
+    if (schedule.days.includes(isoWeekday(candidate))) return candidate;
+  }
+  return null;
+}

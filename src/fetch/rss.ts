@@ -29,13 +29,16 @@ function feedImage(item: FeedItem): string | undefined {
   return img?.startsWith("http") ? img : undefined;
 }
 
-export async function fetchCandidates(sourceToggles: Record<string, boolean> = {}): Promise<Candidate[]> {
+export async function fetchCandidates(
+  sourceToggles: Record<string, boolean> = {},
+  since: Date = new Date(Date.now() - config.candidates.maxAgeHours * 3_600_000),
+): Promise<Candidate[]> {
   const parser = new Parser({
     timeout: 15_000,
     customFields: { item: [["media:content", "mediaContent"], "enclosure", "summary"] },
   });
-  const { maxAgeHours, minPerSource, maxPerSource } = config.candidates;
-  const cutoff = Date.now() - maxAgeHours * 3_600_000;
+  const { maxPerSource } = config.candidates;
+  const cutoff = since.getTime();
   const seen = new Set<string>();
   const all: Candidate[] = [];
   let id = 0;
@@ -80,9 +83,11 @@ export async function fetchCandidates(sourceToggles: Record<string, boolean> = {
       .filter((c) => c.guid && c.link && c.title)
       .sort((a, b) => (b.publishedAt > a.publishedAt ? 1 : -1));
 
-    const fresh = candidates.filter((c) => new Date(c.publishedAt).getTime() >= cutoff);
-    // Thin news days: always keep at least the newest N per source.
-    const kept = (fresh.length >= minPerSource ? fresh : candidates.slice(0, minPerSource)).slice(0, maxPerSource);
+    // Only news published after the previous issue — no keep-old fallback:
+    // stale stories must never reappear in a later issue.
+    const kept = candidates
+      .filter((c) => new Date(c.publishedAt).getTime() >= cutoff)
+      .slice(0, maxPerSource);
 
     for (const c of kept) {
       // Dedupe on guid and title — the same wire story often runs in several papers

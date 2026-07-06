@@ -1,7 +1,28 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "./config.ts";
 import type { IssueData } from "./types.ts";
+
+/** When the most recent issue before `excludeDate` was generated, or null if none. */
+export function lastIssueAt(excludeDate: string): Date | null {
+  let dirs: string[] = [];
+  try {
+    dirs = readdirSync(config.outDir).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d !== excludeDate);
+  } catch {
+    return null;
+  }
+  for (const dir of dirs.sort().reverse()) {
+    const runPath = join(config.outDir, dir, "run.json");
+    try {
+      const issue: IssueData = JSON.parse(readFileSync(runPath, "utf8"));
+      // Older issues predate the generatedAt field — the file's mtime is the same moment.
+      return new Date(issue.generatedAt ?? statSync(runPath).mtime);
+    } catch {
+      continue; // partial/failed issue
+    }
+  }
+  return null;
+}
 
 export function normalizeTitle(title: string): string {
   return title.toLowerCase().replace(/[^a-zåäö0-9]+/g, " ").trim();

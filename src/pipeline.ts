@@ -1,6 +1,7 @@
 import { config } from "./config.ts";
 import { loadSettings, type Settings } from "./settings.ts";
-import { normalizeTitle, recentlyPublished } from "./history.ts";
+import { lastIssueAt, normalizeTitle, recentlyPublished } from "./history.ts";
+import { previousScheduledAt } from "./scheduler.ts";
 import { fetchCandidates } from "./fetch/rss.ts";
 import { scrapeArticle } from "./fetch/scrape.ts";
 import { selectStories, type SelectedPage, type SelectedStory } from "./ai/select.ts";
@@ -28,7 +29,9 @@ export async function buildIssueData(
   settings: Settings = loadSettings(),
 ): Promise<IssueData> {
   console.log("① Fetching feeds…");
-  const fetched = await fetchCandidates(settings.sources);
+  const since = freshnessCutoff(settings, now);
+  console.log(`   taking news published after ${since.toLocaleString("sv-SE")}`);
+  const fetched = await fetchCandidates(settings.sources, since);
 
   // Never print an article that already ran in a recent issue.
   const history = recentlyPublished(isoDate(now));
@@ -38,7 +41,12 @@ export async function buildIssueData(
   const skipped = fetched.length - candidates.length;
   if (skipped > 0) console.log(`   ${skipped} already printed in recent issues — skipped`);
 
-  if (candidates.length < 20) throw new Error(`only ${candidates.length} candidates fetched — feeds down?`);
+  if (candidates.length < 12) {
+    throw new Error(
+      `only ${candidates.length} fresh candidates since ${since.toLocaleString("sv-SE")} — ` +
+        `feeds down, or too little has happened since the last issue`,
+    );
+  }
   const sourceCount = new Set(candidates.map((c) => c.sourceId)).size;
   console.log(`   ${candidates.length} candidates from ${sourceCount} feeds`);
 
@@ -100,9 +108,27 @@ export async function buildIssueData(
   });
 
   console.log(`   text pipeline done ($${guard.totalUsd().toFixed(3)})`);
-  return { date: isoDate(now), dateSv: svDate(now), pages };
+  return { date: isoDate(now), dateSv: svDate(now), generatedAt: new Date().toISOString(), pages };
 }
 
 function roleRank(s: Story): number {
   return s.role === "lead" ? 0 : s.role === "secondary" ? 1 : 2;
+}
+
+/** News must be newer than the last issue; without one, newer than the schedule
+ *  slot before today's (so a weekdays-only paper covers the whole weekend on
+ *  Monday). Anchored to today's slot — not to `now` — so late catch-up runs and
+ *  same-day regenerations get the same window as the 06:00 run would have. */
+function freshnessCutoff(settings: Settings, now: Date): Date {
+  const { maxAgeHours, maxLookbackDays, overlapMinutes } = config.candidates;
+  const [h, m] = settings.schedule.time.split(":").map(Number);
+  const todaysSlot = new Date(now);
+  todaysSlot.setHours(h ?? 0, m ?? 0, 0, 0);
+  const since =
+    lastIssueAt(isoDate(now)) ??
+    previousScheduledAt(settings.schedule, todaysSlot) ??
+    new Date(now.getTime() - maxAgeHours * 3_600_000);
+  const floor = new Date(now.getTime() - maxLookbackDays * 86_400_000);
+  const bounded = since < floor ? floor : since;
+  return new Date(bounded.getTime() - overlapMinutes * 60_000);
 }
