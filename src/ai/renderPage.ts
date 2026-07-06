@@ -4,6 +4,7 @@ import { toFile } from "openai";
 import { openai } from "./client.ts";
 import { config } from "../config.ts";
 import { loadSettings } from "../settings.ts";
+import { STYLES, type StyleId } from "../styles.ts";
 import type { IssueData, PageSpec, Story } from "../types.ts";
 import type { CostGuard } from "../cost/guard.ts";
 
@@ -40,15 +41,22 @@ function roleLabel(story: Story, index: number, leadIndex: number): string {
   return story.role === "brief" ? 'BRIEF (short notis under "I KORTHET")' : "SECONDARY STORY";
 }
 
-export function buildPagePrompt(page: PageSpec, issue: IssueData, photos: Photo[]): string {
+export function buildPagePrompt(
+  page: PageSpec,
+  issue: IssueData,
+  photos: Photo[],
+  styleOverride?: StyleId,
+): string {
   const template = readFileSync("prompts/page.txt", "utf8");
-  const paperName = loadSettings().paperName;
+  const settings = loadSettings();
+  const paperName = settings.paperName;
+  const style = STYLES[styleOverride ?? settings.style];
   const leadIndex = page.stories.findIndex((s) => s.role === "lead");
 
   const header =
     page.pageNumber === 1
-      ? `MASTHEAD: At the very top, the newspaper nameplate "${paperName}" in large ornate blackletter type, centered, with a thin double rule beneath it and a small line underneath reading exactly: "${issue.dateSv}  ·  Pris 5 kr  ·  Grundad 2026". This is the front page.`
-      : `PAGE HEADER: A slim header across the top with a thin double rule reading, left to right: "${paperName}", the section name "${page.title.toUpperCase()}", "${issue.dateSv}", and the page number "${page.pageNumber}". No large masthead — this is an inside page.`;
+      ? style.masthead(paperName, issue.dateSv)
+      : style.pageHeader(paperName, page.title.toUpperCase(), issue.dateSv, page.pageNumber);
 
   const stories = page.stories
     .map((s, i) => {
@@ -70,6 +78,7 @@ export function buildPagePrompt(page: PageSpec, issue: IssueData, photos: Photo[
 
   return template
     .replace("{{PAPER_NAME}}", paperName)
+    .replace("{{AESTHETIC}}", style.aesthetic)
     .replace("{{HEADER}}", header)
     .replace("{{STORY_COUNT}}", String(page.stories.length))
     .replace("{{STORIES}}", stories)
@@ -106,9 +115,10 @@ export async function renderPage(
   issue: IssueData,
   guard: CostGuard,
   outFile: string,
+  styleOverride?: StyleId,
 ): Promise<void> {
   const photos = await downloadPhotos(page);
-  const prompt = buildPagePrompt(page, issue, photos);
+  const prompt = buildPagePrompt(page, issue, photos, styleOverride);
   const label = `page ${page.pageNumber} (${page.title})`;
 
   let lastErr: unknown;

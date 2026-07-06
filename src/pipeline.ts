@@ -47,8 +47,8 @@ export async function buildIssueData(
         `feeds down, or too little has happened since the last issue`,
     );
   }
-  const sourceCount = new Set(candidates.map((c) => c.sourceId)).size;
-  console.log(`   ${candidates.length} candidates from ${sourceCount} feeds`);
+  const sourceCount = new Set(candidates.map((c) => c.sourceUrl)).size;
+  console.log(`   ${candidates.length} candidates from ${sourceCount} sources`);
 
   console.log("② Selecting stories…");
   const selectedPages = await selectStories(candidates, guard, settings);
@@ -56,9 +56,12 @@ export async function buildIssueData(
   console.log(`   ${picked.length} stories across ${selectedPages.length} pages ($${guard.totalUsd().toFixed(3)})`);
 
   console.log("③ Scraping articles…");
+  const sourceByUrl = new Map(settings.sources.map((s) => [s.url, s]));
   const scraped = new Map<number, ScrapedArticle>();
   await trimAll(picked, async (s: SelectedStory) => {
-    const article = await scrapeArticle(s.candidate);
+    const source = sourceByUrl.get(s.candidate.sourceUrl);
+    if (!source) return; // source removed mid-run → falls back to RSS teaser
+    const article = await scrapeArticle(s.candidate, source);
     if (article && (article.lead || article.paragraphs.length > 0)) scraped.set(s.candidate.id, article);
   });
 

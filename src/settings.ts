@@ -1,13 +1,23 @@
 import { readFileSync, writeFileSync, renameSync } from "node:fs";
 import { z } from "zod";
+import { defaultSources } from "./sources.ts";
 
 const SETTINGS_PATH = "settings.json";
+
+const SourceSchema = z.object({
+  url: z.string(),
+  name: z.string(),
+  enabled: z.boolean().default(true),
+  feeds: z.array(z.string()).default([]),
+  strategy: z.enum(["svt", "ntm", "generic"]).default("generic"),
+  credentials: z.object({ username: z.string(), password: z.string() }).optional(),
+});
 
 export const SettingsSchema = z.object({
   paperName: z.string().min(1).max(40).default("MORGONBLADET"),
   interests: z.array(z.string()).default([]),
-  // catalog source id → enabled; ids missing here fall back to the catalog's default
-  sources: z.record(z.string(), z.boolean()).default({}),
+  // User-managed source list (added by URL). Empty → defaultSources() is used at runtime.
+  sources: z.array(SourceSchema).default([]),
   schedule: z
     .object({
       /** auto = generate fully · approve = draft + phone approval · off = manual only */
@@ -31,6 +41,8 @@ export const SettingsSchema = z.object({
     .default({ autoPrint: false, printerName: null }),
   imageQuality: z.enum(["low", "medium", "high"]).default("medium"),
   density: z.enum(["normal", "compact"]).default("compact"),
+  /** Visual style of the rendered pages — see src/styles.ts */
+  style: z.enum(["classic", "modern", "tabloid", "minimal"]).default("classic"),
 });
 
 export type Settings = z.infer<typeof SettingsSchema>;
@@ -47,8 +59,13 @@ export function loadSettings(): Settings {
     raw.schedule.mode = raw.schedule.enabled ? "auto" : "off";
     delete raw.schedule.enabled;
   }
+  // Migrate old source-toggle map → source array (drop it; runtime falls back to defaults).
+  if (raw && raw.sources && !Array.isArray(raw.sources)) delete raw.sources;
+
   const parsed = SettingsSchema.safeParse(raw);
-  return parsed.success ? parsed.data : SettingsSchema.parse({});
+  const settings = parsed.success ? parsed.data : SettingsSchema.parse({});
+  if (settings.sources.length === 0) settings.sources = defaultSources();
+  return settings;
 }
 
 export function saveSettings(settings: Settings): Settings {

@@ -3,14 +3,17 @@ import { hostname } from "node:os";
 import { join } from "node:path";
 import { config } from "../config.ts";
 import { loadSettings, saveSettings, SettingsSchema } from "../settings.ts";
-import { SOURCE_CATALOG } from "../sources.ts";
+import type { Source } from "../sources.ts";
+import { discoverSource } from "../discover.ts";
+import { testLogin } from "../auth.ts";
 import { listPrinters, printPdf } from "../print.ts";
 import { isDue, nextRun } from "../scheduler.ts";
 import { draftPending, loadDraft } from "../issue.ts";
 import { sendNtfy } from "../notify.ts";
 
+import indexHtml from "./index.html";
+
 const PORT = 4711;
-const HTML_PATH = join(import.meta.dir, "public", "index.html");
 
 // ————— generation child process —————
 const gen = {
@@ -183,15 +186,12 @@ Bun.serve({
   port: PORT,
   hostname: "0.0.0.0",
   idleTimeout: 60,
+  routes: { "/": indexHtml },
+  // Launchd runs without NODE_ENV → production mode (cached, minified bundles).
+  development: process.env.NODE_ENV === "development" ? { hmr: true, console: true } : false,
   async fetch(req) {
     const url = new URL(req.url);
     const path = url.pathname;
-
-    if (path === "/" || path === "/index.html") {
-      return new Response(readFileSync(HTML_PATH), {
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      });
-    }
 
     if (path === "/api/status") {
       const today = todayStr();
@@ -278,17 +278,26 @@ Bun.serve({
     if (path === "/api/printers") return json(await listPrinters());
 
     if (path === "/api/settings" && req.method === "GET") {
-      return json({
-        settings: loadSettings(),
-        catalog: SOURCE_CATALOG.map((s) => ({
-          id: s.id,
-          name: s.name,
-          attribution: s.attribution,
-          section: s.section,
-          strategy: s.strategy,
-          defaultEnabled: s.defaultEnabled,
-        })),
-      });
+      return json({ settings: loadSettings() });
+    }
+
+    // Resolve a bare URL to feeds + name + strategy (preview before adding).
+    if (path === "/api/sources/discover" && req.method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { url?: string };
+      if (!body.url) return json({ error: "ingen URL" }, 400);
+      try {
+        return json(await discoverSource(body.url));
+      } catch (e) {
+        return json({ error: e instanceof Error ? e.message : String(e) }, 422);
+      }
+    }
+
+    // Verify paywall credentials for one source.
+    if (path === "/api/sources/test-login" && req.method === "POST") {
+      const body = (await req.json().catch(() => ({}))) as { source?: Source };
+      if (!body.source?.credentials) return json({ ok: false, message: "inga uppgifter" }, 400);
+      const result = await testLogin(body.source);
+      return json(result, result.ok ? 200 : 401);
     }
 
     if (path === "/api/settings" && req.method === "PUT") {

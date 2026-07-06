@@ -104,11 +104,24 @@ at the PNG, repeat.
 
 ## Adding sources
 
-Add an entry to `SOURCE_CATALOG` in `src/sources.ts` with a feed URL, a
-section (or `inferSection` for mixed feeds), and a scrape strategy:
-`generic` (JSON-LD/article-tag extraction), `rss-only` (feed text only), or a
-custom one like the built-in `svt`. It appears in the control panel
-automatically.
+In the control panel's **Källor** section, type a domain (e.g. `mvt.se`) and
+hit "Lägg till". The app fetches the homepage, discovers the RSS feed(s) via
+`<link rel="alternate">` or common paths, derives the display name from
+`og:site_name`, and picks a scrape strategy automatically:
+
+- `svt` — SVT's tuned selectors
+- `ntm` — NTM's "iris" papers (mvt.se, corren.se, nt.se, vt.se…): full article
+  text via the iris API when you log in
+- `generic` — JSON-LD `articleBody` → `<article>` paragraphs → RSS teaser
+
+**Paywalled sites**: for `ntm` sources, expand the row and enter your
+username/password. The scraper logs in (NTM's `crm-api` → Bearer token) and
+pulls full article bodies behind the paywall; without credentials it falls
+back to the free RSS teaser. Credentials are stored in `settings.json`
+(gitignored, local-only) — never committed, never written to issue output.
+
+Discovery/strategy logic lives in `src/discover.ts` + `src/sources.ts`; login
+in `src/auth.ts`.
 
 ## Uninstall
 

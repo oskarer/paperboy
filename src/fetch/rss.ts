@@ -1,6 +1,6 @@
 import Parser from "rss-parser";
 import { config } from "../config.ts";
-import { enabledSources, inferSection, type SourceDef } from "../sources.ts";
+import { inferSection, type Source } from "../sources.ts";
 import type { Candidate } from "../types.ts";
 
 type FeedItem = Parser.Item & {
@@ -30,7 +30,7 @@ function feedImage(item: FeedItem): string | undefined {
 }
 
 export async function fetchCandidates(
-  sourceToggles: Record<string, boolean> = {},
+  sources: Source[],
   since: Date = new Date(Date.now() - config.candidates.maxAgeHours * 3_600_000),
 ): Promise<Candidate[]> {
   const parser = new Parser({
@@ -43,11 +43,14 @@ export async function fetchCandidates(
   const all: Candidate[] = [];
   let id = 0;
 
-  const sources = enabledSources(sourceToggles);
-  // Fetch with Bun's fetch (handles forced gzip, e.g. gp.se) and parse the string.
+  // One fetch job per (enabled source × its feeds).
+  const jobs = sources
+    .filter((s) => s.enabled)
+    .flatMap((source) => source.feeds.map((feedUrl) => ({ source, feedUrl })));
   const results = await Promise.allSettled(
-    sources.map(async (s) => {
-      const res = await fetch(s.feedUrl, {
+    jobs.map(async ({ feedUrl }) => {
+      // Bun's fetch handles forced gzip (e.g. gp.se); parse the string.
+      const res = await fetch(feedUrl, {
         headers: { "User-Agent": "print-news/1.0 (personal morning paper)" },
         signal: AbortSignal.timeout(15_000),
       });
@@ -57,24 +60,21 @@ export async function fetchCandidates(
   );
 
   for (const [i, result] of results.entries()) {
-    const source = sources[i] as SourceDef;
+    const { source, feedUrl } = jobs[i]!;
     if (result.status === "rejected") {
-      console.error(`rss: failed to fetch ${source.id}: ${result.reason}`);
+      console.error(`rss: failed to fetch ${feedUrl}: ${result.reason}`);
       continue;
     }
-    // rss-only sources carry their whole story text in the feed — keep more of it.
-    const descriptionCap = source.strategy === "rss-only" ? 1500 : 300;
     const candidates = (result.value.items as FeedItem[])
       .map((item) => {
         const link = item.link ?? "";
-        const categories = (item.categories ?? []).map(String);
         return {
           guid: item.guid ?? link,
-          section: source.inferSection ? inferSection(link, categories) : source.section,
-          sourceId: source.id,
-          attribution: source.attribution,
+          section: inferSection(link),
+          sourceUrl: source.url,
+          attribution: source.name,
           title: cleanText(item.title),
-          description: cleanText(item.contentSnippet ?? item.content ?? item.summary).slice(0, descriptionCap),
+          description: cleanText(item.contentSnippet ?? item.content ?? item.summary).slice(0, 300),
           link,
           publishedAt: item.isoDate ?? item.pubDate ?? "",
           feedImageUrl: feedImage(item),
@@ -85,13 +85,10 @@ export async function fetchCandidates(
 
     // Only news published after the previous issue — no keep-old fallback:
     // stale stories must never reappear in a later issue.
-    const kept = candidates
-      .filter((c) => new Date(c.publishedAt).getTime() >= cutoff)
-      .slice(0, maxPerSource);
+    const kept = candidates.filter((c) => new Date(c.publishedAt).getTime() >= cutoff).slice(0, maxPerSource);
 
     for (const c of kept) {
-      // Dedupe on guid and title — the same wire story often runs in several papers
-      // (Schibsted syndicates identical articles to Aftonbladet and SvD).
+      // Dedupe on guid and title — the same wire story often runs in several papers.
       const titleKey = c.title.toLowerCase().replace(/[^a-zåäö0-9]+/g, " ").trim();
       if (seen.has(c.guid) || seen.has(titleKey)) continue;
       seen.add(c.guid);

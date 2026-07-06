@@ -6,7 +6,8 @@ export interface Candidate {
   id: number;
   guid: string;
   section: SectionKey;
-  sourceId: string;
+  /** Origin URL of the owning source, used to look up its scrape strategy/credentials */
+  sourceUrl: string;
   attribution: string;
   title: string;
   description: string;

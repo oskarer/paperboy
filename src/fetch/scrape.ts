@@ -1,6 +1,7 @@
 import { load, type CheerioAPI } from "cheerio";
 import { config } from "../config.ts";
-import { sourceById, type ScrapeStrategy } from "../sources.ts";
+import type { Source } from "../sources.ts";
+import { ntmArticleId, ntmFetchBody, ntmLogin } from "../auth.ts";
 import type { Candidate, ScrapedArticle } from "../types.ts";
 
 // Full browser header set: sverigesradio.se (Akamai) returns 403 on bare UA requests,
@@ -120,16 +121,39 @@ function scrapeGeneric($: CheerioAPI): ScrapedArticle | null {
   return { headline, lead, paragraphs, imageUrls: og ? [og] : [] };
 }
 
-export async function scrapeArticle(candidate: Candidate): Promise<ScrapedArticle | null> {
-  const strategy: ScrapeStrategy = sourceById(candidate.sourceId)?.strategy ?? "rss-only";
-  if (strategy === "rss-only") return null; // caller uses the RSS description
+/** Full premium body from the NTM iris API (paragraph HTML → ScrapedArticle). */
+async function scrapeNtm(candidate: Candidate, source: Source): Promise<ScrapedArticle | null> {
+  if (!source.credentials) return null; // no login → fall back to RSS teaser
+  const id = ntmArticleId(candidate.link);
+  if (!id) return null;
+  try {
+    const token = await ntmLogin(source);
+    const bodyHtml = await ntmFetchBody(source, id, token);
+    if (!bodyHtml) return null;
+    const $ = load(`<div>${bodyHtml}</div>`);
+    const paragraphs = $("p")
+      .map((_, el) => $(el).text().trim())
+      .get()
+      .filter((p) => p.length > 0);
+    if (paragraphs.join(" ").length < 200) return null;
+    return {
+      headline: candidate.title,
+      lead: paragraphs.shift() ?? "",
+      paragraphs,
+      imageUrls: candidate.feedImageUrl ? [candidate.feedImageUrl] : [],
+    };
+  } catch (err) {
+    console.warn(`   ntm scrape failed for ${candidate.link}: ${err}`);
+    return null;
+  }
+}
+
+export async function scrapeArticle(candidate: Candidate, source: Source): Promise<ScrapedArticle | null> {
+  if (source.strategy === "ntm") return scrapeNtm(candidate, source);
 
   let html: string;
   try {
-    const res = await fetch(candidate.link, {
-      headers: BROWSER_HEADERS,
-      signal: AbortSignal.timeout(15_000),
-    });
+    const res = await fetch(candidate.link, { headers: BROWSER_HEADERS, signal: AbortSignal.timeout(15_000) });
     if (!res.ok) return null;
     html = await res.text();
   } catch {
@@ -137,5 +161,5 @@ export async function scrapeArticle(candidate: Candidate): Promise<ScrapedArticl
   }
 
   const $ = load(html);
-  return strategy === "svt" ? scrapeSvt($) : scrapeGeneric($);
+  return source.strategy === "svt" ? scrapeSvt($) : scrapeGeneric($);
 }
