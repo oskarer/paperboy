@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morgonbladet · Kontrollpanel</title>
+<style>
+  :root { --ink: #1a1a1a; --paper: #fafaf7; --rule: #d8d5cc; --accent: #8b0000; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+         font: 16px/1.5 -apple-system, "Helvetica Neue", sans-serif; }
+  header { text-align: center; padding: 22px 16px 10px; border-bottom: 3px double var(--ink); }
+  header h1 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 34px; letter-spacing: 1px; }
+  header p { margin: 4px 0 0; color: #666; font-size: 13px; }
+  main { max-width: 680px; margin: 0 auto; padding: 16px; }
+  section { background: #fff; border: 1px solid var(--rule); border-radius: 10px; padding: 18px; margin: 16px 0; }
+  h2 { margin: 0 0 12px; font-family: Georgia, serif; font-size: 20px; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+  h3 { margin: 18px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .5px; color: #555; }
+  button { font: inherit; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--ink);
+           background: var(--ink); color: #fff; cursor: pointer; }
+  button.secondary { background: #fff; color: var(--ink); }
+  button:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .thumb { width: 130px; border: 1px solid var(--rule); border-radius: 4px; display: block; }
+  .status-line { font-size: 14px; color: #444; margin: 8px 0; }
+  .log { background: #111; color: #9fdf9f; font: 12px/1.5 ui-monospace, monospace; border-radius: 8px;
+         padding: 10px 12px; max-height: 180px; overflow-y: auto; white-space: pre-wrap; display: none; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .chip { background: #eee9df; border-radius: 999px; padding: 4px 12px; font-size: 14px; }
+  .chip button { background: none; border: none; color: var(--accent); padding: 0 0 0 6px; font-size: 15px; }
+  input[type=text] { font: inherit; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 8px; flex: 1; min-width: 160px; }
+  select, input[type=time] { font: inherit; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 8px; background: #fff; }
+  .day { display: inline-flex; flex-direction: column; align-items: center; font-size: 12px; padding: 0 4px; }
+  label.src, label.opt { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 15px; }
+  label.src small { color: #888; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .hint { font-size: 13px; color: #777; margin: 4px 0 0; }
+  .issue { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--rule); font-size: 15px; }
+  .issue:last-child { border-bottom: none; }
+  .issue a { color: var(--ink); }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink);
+           color: #fff; padding: 10px 20px; border-radius: 999px; font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .savebar { position: sticky; bottom: 12px; display: flex; justify-content: flex-end; margin-top: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MORGONBLADET</h1>
+  <p>Kontrollpanel · <span id="today"></span></p>
+</header>
+<main>
+
+  <section id="today-card">
+    <h2>Dagens tidning</h2>
+    <div class="row">
+      <a id="thumb-link" href="#" target="_blank"><img id="thumb" class="thumb" alt="" style="display:none"></a>
+      <div style="flex:1; min-width: 200px">
+        <div class="status-line" id="issue-status">…</div>
+        <div class="status-line" id="cost-line"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="btn-generate">Generera nu</button>
+          <button id="btn-print" class="secondary">Skriv ut</button>
+          <a id="btn-open" href="#" target="_blank" style="display:none"><button class="secondary">Öppna PDF</button></a>
+        </div>
+      </div>
+    </div>
+    <pre class="log" id="log"></pre>
+  </section>
+
+  <section>
+    <h2>Inställningar</h2>
+
+    <h3>Schema</h3>
+    <label class="opt"><input type="checkbox" id="sched-enabled"> Generera automatiskt</label>
+    <div class="row" style="margin-top:6px">
+      <label class="opt">Klockan <input type="time" id="sched-time" step="60"></label>
+      <span class="row" id="sched-days"></span>
+    </div>
+    <p class="hint" id="sched-hint"></p>
+
+    <h3>Tidningens namn</h3>
+    <input type="text" id="paper-name" maxlength="40" style="max-width:280px">
+    <p class="hint">Syns i tidningshuvudet på förstasidan.</p>
+
+    <h3>Intresseområden</h3>
+    <p class="hint">Nyheter som matchar viktas upp i urvalet (huvudnyheterna behåller alltid förstaplatsen).</p>
+    <div class="chips" id="interest-chips"></div>
+    <div class="row">
+      <input type="text" id="interest-input" placeholder="t.ex. AI, Formel 1, Norrköping…" enterkeyhint="done">
+      <button class="secondary" id="btn-add-interest">Lägg till</button>
+    </div>
+
+    <h3>Källor</h3>
+    <div class="grid" id="sources"></div>
+
+    <h3>Skrivare</h3>
+    <div class="row">
+      <select id="printer-select"><option value="">Standardskrivare</option></select>
+      <label class="opt"><input type="checkbox" id="auto-print"> Skriv ut automatiskt efter kl 06-körningen</label>
+    </div>
+    <p class="hint" id="printer-hint"></p>
+
+    <h3>Utseende &amp; kostnad</h3>
+    <div class="row">
+      <label class="opt">Bildkvalitet
+        <select id="quality">
+          <option value="low">Låg (~$0,10/nummer)</option>
+          <option value="medium">Medium (~$0,50/nummer)</option>
+          <option value="high">Hög (över $1-taket — höj taket i koden först)</option>
+        </select>
+      </label>
+      <label class="opt">Täthet
+        <select id="density">
+          <option value="compact">Kompakt (6–8 artiklar/sida)</option>
+          <option value="normal">Normal (4–6 artiklar/sida)</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="savebar"><button id="btn-save">Spara inställningar</button></div>
+  </section>
+
+  <section>
+    <h2>Arkiv</h2>
+    <div id="issues"></div>
+  </section>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let settings = null;
+let catalog = [];
+let pollTimer = null;
+
+function toast(msg) {
+  $("toast").textContent = msg;
+  $("toast").classList.add("show");
+  setTimeout(() => $("toast").classList.remove("show"), 2600);
+}
+
+async function api(path, opts) {
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ? JSON.stringify(data.error) : res.status);
+  return data;
+}
+
+// ————— status / today —————
+async function refreshStatus() {
+  const s = await api("/api/status");
+  $("today").textContent = s.today;
+  const has = s.todayHasIssue;
+  $("issue-status").textContent = s.generating
+    ? "⏳ Genererar…"
+    : has ? "✓ Dagens nummer finns" : "Inget nummer genererat i dag";
+  document.querySelector("header h1").textContent = s.paperName || "MORGONBLADET";
+  document.title = (s.paperName || "Morgonbladet") + " · Kontrollpanel";
+  const next = s.scheduleEnabled && s.nextRunAt
+    ? "Nästa automatiska körning: " + new Date(s.nextRunAt).toLocaleString("sv-SE", { weekday: "short", hour: "2-digit", minute: "2-digit" })
+    : "Automatisk generering är avstängd";
+  $("cost-line").textContent = [
+    s.todayCostUsd != null ? `Kostnad i dag: $${s.todayCostUsd.toFixed(2)}` : null,
+    s.cumulativeUsd != null ? `totalt: $${s.cumulativeUsd.toFixed(2)}` : null,
+    next,
+  ].filter(Boolean).join(" · ");
+  $("btn-generate").disabled = s.generating;
+  $("btn-print").disabled = !has || s.generating;
+  $("btn-open").style.display = has ? "" : "none";
+  $("btn-open").href = `/issues/${s.today}/issue.pdf`;
+  $("thumb").style.display = has ? "" : "none";
+  if (has && !$("thumb").src) {
+    $("thumb").src = `/issues/${s.today}/page-1.png?t=${Date.now()}`;
+    $("thumb-link").href = `/issues/${s.today}/issue.pdf`;
+  }
+  const log = $("log");
+  log.style.display = (s.generating || s.log.length) ? "block" : "none";
+  log.textContent = s.log.join("\n");
+  log.scrollTop = log.scrollHeight;
+  if (s.generating && !pollTimer) pollTimer = setInterval(refreshStatus, 3000);
+  if (!s.generating && pollTimer) {
+    clearInterval(pollTimer); pollTimer = null;
+    refreshIssues();
+    $("thumb").src = ""; // force thumbnail reload for the fresh issue
+  }
+}
+
+$("btn-generate").onclick = async () => {
+  try { await api("/api/generate", { method: "POST" }); toast("Generering startad"); }
+  catch { toast("Kör redan"); }
+  refreshStatus();
+};
+
+$("btn-print").onclick = async () => {
+  try { const r = await api("/api/print", { method: "POST", body: "{}" }); toast("Skickad till skrivaren: " + r.message); }
+  catch (e) { toast("Utskrift misslyckades: " + e.message); }
+};
+
+// ————— settings —————
+function renderInterests() {
+  $("interest-chips").innerHTML = "";
+  settings.interests.forEach((it, i) => {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = it;
+    const x = document.createElement("button");
+    x.textContent = "×";
+    x.onclick = () => { settings.interests.splice(i, 1); renderInterests(); };
+    chip.appendChild(x);
+    $("interest-chips").appendChild(chip);
+  });
+}
+
+function addInterest() {
+  const val = $("interest-input").value.trim();
+  if (!val) return;
+  val.split(",").map(v => v.trim()).filter(Boolean).forEach(v => {
+    if (!settings.interests.includes(v)) settings.interests.push(v);
+  });
+  $("interest-input").value = "";
+  renderInterests();
+}
+$("btn-add-interest").onclick = addInterest;
+$("interest-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addInterest(); } });
+
+function renderSources() {
+  $("sources").innerHTML = "";
+  catalog.forEach((src) => {
+    const enabled = settings.sources[src.id] ?? src.defaultEnabled;
+    const label = document.createElement("label");
+    label.className = "src";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = enabled;
+    cb.onchange = () => { settings.sources[src.id] = cb.checked; };
+    label.appendChild(cb);
+    const text = document.createElement("span");
+    text.innerHTML = `${src.name} <small>(${src.strategy === "rss-only" ? "notiser" : "fulltext"})</small>`;
+    label.appendChild(text);
+    $("sources").appendChild(label);
+  });
+}
+
+const DAY_NAMES = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
+
+function renderScheduleDays() {
+  $("sched-days").innerHTML = "";
+  DAY_NAMES.forEach((name, i) => {
+    const day = i + 1; // ISO: Mon=1 … Sun=7
+    const label = document.createElement("label");
+    label.className = "day";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = settings.schedule.days.includes(day);
+    cb.onchange = () => {
+      settings.schedule.days = cb.checked
+        ? [...settings.schedule.days, day].sort()
+        : settings.schedule.days.filter((d) => d !== day);
+    };
+    label.appendChild(document.createTextNode(name));
+    label.appendChild(cb);
+    $("sched-days").appendChild(label);
+  });
+}
+
+async function loadSettingsUi() {
+  const data = await api("/api/settings");
+  settings = data.settings;
+  catalog = data.catalog;
+  renderInterests();
+  renderSources();
+  renderScheduleDays();
+  $("sched-enabled").checked = settings.schedule.enabled;
+  $("sched-time").value = settings.schedule.time;
+  $("paper-name").value = settings.paperName;
+  $("auto-print").checked = settings.printer.autoPrint;
+  $("quality").value = settings.imageQuality;
+  $("density").value = settings.density;
+  try {
+    const printers = await api("/api/printers");
+    printers.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.name;
+      opt.textContent = `${p.name} (${p.status})`;
+      $("printer-select").appendChild(opt);
+    });
+    $("printer-select").value = settings.printer.printerName ?? "";
+    $("printer-hint").textContent = printers.length ? "" :
+      "Inga skrivare hittades — lägg till en i macOS Systeminställningar → Skrivare, så dyker den upp här.";
+  } catch { /* printers optional */ }
+}
+
+$("btn-save").onclick = async () => {
+  settings.schedule.enabled = $("sched-enabled").checked;
+  settings.schedule.time = $("sched-time").value || "06:00";
+  settings.paperName = $("paper-name").value.trim() || "MORGONBLADET";
+  settings.printer.autoPrint = $("auto-print").checked;
+  settings.printer.printerName = $("printer-select").value || null;
+  settings.imageQuality = $("quality").value;
+  settings.density = $("density").value;
+  try {
+    const r = await api("/api/settings", { method: "PUT", body: JSON.stringify(settings) });
+    settings = r.settings;
+    toast("Sparat — gäller från nästa nummer");
+  } catch (e) { toast("Kunde inte spara: " + e.message); }
+};
+
+// ————— archive —————
+async function refreshIssues() {
+  const issues = await api("/api/issues");
+  $("issues").innerHTML = issues.length ? "" : "<p class='hint'>Inga nummer ännu.</p>";
+  issues.forEach((i) => {
+    const row = document.createElement("div");
+    row.className = "issue";
+    const cost = i.costUsd != null ? ` · $${i.costUsd.toFixed(2)}` : "";
+    row.innerHTML = `<span>🗞 ${i.date}<small>${cost}</small></span>`;
+    const actions = document.createElement("span");
+    actions.innerHTML = `<a href="/issues/${i.date}/issue.pdf" target="_blank">Öppna</a> · `;
+    const printLink = document.createElement("a");
+    printLink.href = "#";
+    printLink.textContent = "Skriv ut";
+    printLink.onclick = async (e) => {
+      e.preventDefault();
+      try { const r = await api("/api/print", { method: "POST", body: JSON.stringify({ date: i.date }) }); toast("Skickad: " + r.message); }
+      catch (err) { toast("Utskrift misslyckades: " + err.message); }
+    };
+    actions.appendChild(printLink);
+    row.appendChild(actions);
+    $("issues").appendChild(row);
+  });
+}
+
+refreshStatus();
+loadSettingsUi();
+refreshIssues();
+setInterval(refreshStatus, 15000);
+</script>
+</body>
+</html>

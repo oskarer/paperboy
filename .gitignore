@@ -1,0 +1,6 @@
+node_modules/
+out/
+.env
+settings.json
+.tool-versions
+.DS_Store

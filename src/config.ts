@@ -1,0 +1,26 @@
+export const config = {
+  textModel: "gpt-5.4-nano",
+  imageModel: "gpt-image-2",
+  // True A4 ratio at ~200 dpi so dense small text stays legible in print.
+  // (Image quality lives in settings.json — tunable from the web UI.)
+  imageSize: { width: 1664, height: 2352 },
+  maxPhotosPerPage: 4,
+  photoWidth: 480,
+  issueCostCapUsd: 1.0,
+  devBudgetUsd: 10.0,
+  outDir: "out",
+  pages: [
+    { pageNumber: 1, title: "Förstasidan", brief: "dagens allra viktigaste nyheter oavsett ämne" },
+    { pageNumber: 2, title: "Inrikes", brief: "svenska inrikesnyheter" },
+    { pageNumber: 3, title: "Utrikes", brief: "nyheter från övriga världen" },
+    { pageNumber: 4, title: "Ekonomi", brief: "ekonomi, näringsliv och privatekonomi" },
+    { pageNumber: 5, title: "Kultur & Sport", brief: "kultur och sport" },
+  ],
+  candidates: {
+    maxAgeHours: 26,
+    minPerSource: 10,
+    maxPerSource: 30,
+    /** How many past issues to check so an article never runs twice */
+    historyIssues: 7,
+  },
+};

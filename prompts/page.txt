@@ -1,0 +1,18 @@
+A flat, straight-on high-resolution scan of one printed page from a traditional Swedish broadsheet morning newspaper, "{{PAPER_NAME}}". The page fills the entire image edge to edge — no desk, no hands, no background, no perspective tilt.
+
+PRINT AESTHETIC: PURE WHITE paper background (plain white office paper — no cream tint, no gray tone, no paper texture, no ink-wash; large areas must stay completely white to save printer ink), crisp black ink, classic dense serif typography (Times-like), justified body text set SMALL and tight in exactly 4 narrow columns separated by thin vertical hairlines, compact headlines, tight leading, minimal whitespace, elegant thin horizontal rules between stories.
+
+{{HEADER}}
+
+THE PAGE CONTAINS EXACTLY THESE {{STORY_COUNT}} ARTICLES AND NOTHING ELSE. Typeset every headline and every body text below EXACTLY, word for word, letter for letter, in Swedish — å, ä and ö must be rendered correctly. Do not invent, add, translate or paraphrase any text.
+
+{{STORIES}}
+
+LAYOUT: The lead story sits at the top with the largest headline spanning 2–3 columns. Secondary stories follow below and beside it with compact one-column or two-column headlines. Brief items are stacked in a narrow column under the small heading "I KORTHET" with bold mini-headlines. Every story ends with the small credit line given for it below (e.g. "Källa: SVT"). Fill the whole page with content; VERY dense and compact, professional, balanced — like a text-heavy classic broadsheet where every column inch is used.
+
+MARGINS: The printed content sits inside clear page margins on all four sides — at least 3% of the page dimension of pure white space at top, bottom, left and right. No text or rule may touch or run off the page edge. All body text must fit completely; never cut a sentence at the bottom edge — end the last story cleanly above the bottom margin.
+
+PHOTOS: The attached photographs are the actual press photos for this page. Print each one COMPACT (one or two columns wide, never dominating the page) with a thin black border and a small italic caption beneath it, placed with the story indicated below. Do not alter their content. Captions are one short factual sentence drawn from the story — never a repeat of the headline. Brief items in "I KORTHET" never have photos.
+{{PHOTO_MAP}}
+
+STRICTLY FORBIDDEN: website elements, buttons, hyperlinks, URLs, QR codes, logos other than the newspaper's own masthead, advertisements, page curl, English words, watermarks, any text not specified above.
