@@ -59,6 +59,7 @@
         <div class="status-line" id="issue-status">…</div>
         <div class="status-line" id="cost-line"></div>
         <div class="row" style="margin-top:10px">
+          <button id="btn-approve" style="display:none; background:var(--accent); border-color:var(--accent)">Godkänn &amp; rendera ✓</button>
           <button id="btn-generate">Generera nu</button>
           <button id="btn-print" class="secondary">Skriv ut</button>
           <a id="btn-open" href="#" target="_blank" style="display:none"><button class="secondary">Öppna PDF</button></a>
@@ -72,12 +73,23 @@
     <h2>Inställningar</h2>
 
     <h3>Schema</h3>
-    <label class="opt"><input type="checkbox" id="sched-enabled"> Generera automatiskt</label>
-    <div class="row" style="margin-top:6px">
+    <div class="row">
+      <select id="sched-mode">
+        <option value="auto">Generera automatiskt</option>
+        <option value="approve">Fråga först — notis till mobilen</option>
+        <option value="off">Av — bara manuellt</option>
+      </select>
       <label class="opt">Klockan <input type="time" id="sched-time" step="60"></label>
       <span class="row" id="sched-days"></span>
     </div>
-    <p class="hint" id="sched-hint"></p>
+    <div id="ntfy-row" style="margin-top:8px">
+      <div class="row">
+        <input type="text" id="ntfy-topic" placeholder="ntfy-topic (hemligt namn, t.ex. morgonbladet-x7k2p)" style="max-width:340px">
+        <button class="secondary" id="btn-test-ntfy">Testa notis</button>
+      </div>
+      <p class="hint">Installera <b>ntfy</b>-appen och prenumerera på samma topic. Vid "Fråga först" skickas
+      en notis när utkastet är klart (~$0.02) — rendering (~$0.50) sker först när du godkänner.</p>
+    </div>
 
     <h3>Tidningens namn</h3>
     <input type="text" id="paper-name" maxlength="40" style="max-width:280px">
@@ -149,17 +161,23 @@ async function api(path, opts) {
 }
 
 // ————— status / today —————
+let approveToken = null;
+
 async function refreshStatus() {
   const s = await api("/api/status");
   $("today").textContent = s.today;
   const has = s.todayHasIssue;
+  approveToken = s.approveToken;
+  const genLabel = { draft: "⏳ Tar fram utkast…", render: "⏳ Renderar sidor…", issue: "⏳ Genererar…" };
   $("issue-status").textContent = s.generating
-    ? "⏳ Genererar…"
+    ? (genLabel[s.generatingKind] ?? genLabel.issue)
+    : s.draftPending ? `📱 Utkast klart (${s.draftStories} artiklar) — väntar på godkännande`
     : has ? "✓ Dagens nummer finns" : "Inget nummer genererat i dag";
+  $("btn-approve").style.display = s.draftPending ? "" : "none";
   document.querySelector("header h1").textContent = s.paperName || "MORGONBLADET";
   document.title = (s.paperName || "Morgonbladet") + " · Kontrollpanel";
-  const next = s.scheduleEnabled && s.nextRunAt
-    ? "Nästa automatiska körning: " + new Date(s.nextRunAt).toLocaleString("sv-SE", { weekday: "short", hour: "2-digit", minute: "2-digit" })
+  const next = s.scheduleMode !== "off" && s.nextRunAt
+    ? `Nästa ${s.scheduleMode === "approve" ? "utkast" : "körning"}: ` + new Date(s.nextRunAt).toLocaleString("sv-SE", { weekday: "short", hour: "2-digit", minute: "2-digit" })
     : "Automatisk generering är avstängd";
   $("cost-line").textContent = [
     s.todayCostUsd != null ? `Kostnad i dag: $${s.todayCostUsd.toFixed(2)}` : null,
@@ -191,6 +209,24 @@ $("btn-generate").onclick = async () => {
   try { await api("/api/generate", { method: "POST" }); toast("Generering startad"); }
   catch { toast("Kör redan"); }
   refreshStatus();
+};
+
+$("btn-approve").onclick = async () => {
+  try {
+    await api(`/api/approve?token=${approveToken}`, { method: "POST" });
+    toast("Godkänt — renderar!");
+  } catch (e) { toast("Kunde inte godkänna: " + e.message); }
+  refreshStatus();
+};
+
+$("btn-test-ntfy").onclick = async () => {
+  // Save the topic first so the test uses what's in the field.
+  settings.ntfyTopic = $("ntfy-topic").value.trim() || null;
+  try {
+    await api("/api/settings", { method: "PUT", body: JSON.stringify(settings) });
+    const r = await api("/api/test-notification", { method: "POST" });
+    toast("Testnotis skickad — kolla mobilen!");
+  } catch (e) { toast("Notis misslyckades: " + e.message); }
 };
 
 $("btn-print").onclick = async () => {
@@ -272,8 +308,9 @@ async function loadSettingsUi() {
   renderInterests();
   renderSources();
   renderScheduleDays();
-  $("sched-enabled").checked = settings.schedule.enabled;
+  $("sched-mode").value = settings.schedule.mode;
   $("sched-time").value = settings.schedule.time;
+  $("ntfy-topic").value = settings.ntfyTopic ?? "";
   $("paper-name").value = settings.paperName;
   $("auto-print").checked = settings.printer.autoPrint;
   $("quality").value = settings.imageQuality;
@@ -293,8 +330,9 @@ async function loadSettingsUi() {
 }
 
 $("btn-save").onclick = async () => {
-  settings.schedule.enabled = $("sched-enabled").checked;
+  settings.schedule.mode = $("sched-mode").value;
   settings.schedule.time = $("sched-time").value || "06:00";
+  settings.ntfyTopic = $("ntfy-topic").value.trim() || null;
   settings.paperName = $("paper-name").value.trim() || "MORGONBLADET";
   settings.printer.autoPrint = $("auto-print").checked;
   settings.printer.printerName = $("printer-select").value || null;

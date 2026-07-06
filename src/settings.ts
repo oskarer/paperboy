@@ -10,7 +10,8 @@ export const SettingsSchema = z.object({
   sources: z.record(z.string(), z.boolean()).default({}),
   schedule: z
     .object({
-      enabled: z.boolean().default(true),
+      /** auto = generate fully · approve = draft + phone approval · off = manual only */
+      mode: z.enum(["auto", "approve", "off"]).default("auto"),
       /** Local time HH:MM */
       time: z
         .string()
@@ -19,7 +20,9 @@ export const SettingsSchema = z.object({
       /** ISO weekdays, 1 = Monday … 7 = Sunday */
       days: z.array(z.number().int().min(1).max(7)).default([1, 2, 3, 4, 5, 6, 7]),
     })
-    .default({ enabled: true, time: "06:00", days: [1, 2, 3, 4, 5, 6, 7] }),
+    .default({ mode: "auto", time: "06:00", days: [1, 2, 3, 4, 5, 6, 7] }),
+  /** ntfy.sh topic for approval notifications (acts as the shared secret) */
+  ntfyTopic: z.string().nullable().default(null),
   printer: z
     .object({
       autoPrint: z.boolean().default(false),
@@ -33,11 +36,16 @@ export const SettingsSchema = z.object({
 export type Settings = z.infer<typeof SettingsSchema>;
 
 export function loadSettings(): Settings {
-  let raw: unknown = {};
+  let raw: any = {};
   try {
     raw = JSON.parse(readFileSync(SETTINGS_PATH, "utf8"));
   } catch {
     // missing or corrupt file → defaults
+  }
+  // Migrate pre-mode settings: schedule.enabled boolean → schedule.mode enum.
+  if (raw?.schedule && typeof raw.schedule.enabled === "boolean" && !raw.schedule.mode) {
+    raw.schedule.mode = raw.schedule.enabled ? "auto" : "off";
+    delete raw.schedule.enabled;
   }
   const parsed = SettingsSchema.safeParse(raw);
   return parsed.success ? parsed.data : SettingsSchema.parse({});

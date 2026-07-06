@@ -16,7 +16,7 @@ function timeAsMinutes(time: string): number {
  *  any time after the scheduled time on an enabled day counts, as long as the
  *  issue doesn't exist yet). */
 export function isDue(schedule: Schedule, now: Date, todayHasIssue: boolean): boolean {
-  if (!schedule.enabled) return false;
+  if (schedule.mode === "off") return false;
   if (todayHasIssue) return false;
   if (!schedule.days.includes(isoWeekday(now))) return false;
   return now.getHours() * 60 + now.getMinutes() >= timeAsMinutes(schedule.time);
@@ -24,7 +24,7 @@ export function isDue(schedule: Schedule, now: Date, todayHasIssue: boolean): bo
 
 /** The next scheduled fire time strictly after `now`, or null when disabled. */
 export function nextRun(schedule: Schedule, now: Date): Date | null {
-  if (!schedule.enabled || schedule.days.length === 0) return null;
+  if (schedule.mode === "off" || schedule.days.length === 0) return null;
   const [h, m] = schedule.time.split(":").map(Number);
   for (let offset = 0; offset <= 7; offset++) {
     const candidate = new Date(now);
@@ -40,7 +40,7 @@ export function nextRun(schedule: Schedule, now: Date): Date | null {
  *  Used as the news-freshness cutoff when no previous issue exists — e.g. a
  *  weekdays-only schedule makes Monday's paper cover the whole weekend. */
 export function previousScheduledAt(schedule: Schedule, now: Date): Date | null {
-  if (!schedule.enabled || schedule.days.length === 0) return null;
+  if (schedule.mode === "off" || schedule.days.length === 0) return null;
   const [h, m] = schedule.time.split(":").map(Number);
   for (let offset = 0; offset <= 7; offset++) {
     const candidate = new Date(now);

@@ -62,11 +62,24 @@ Then open **http://localhost:4711** (or `http://<your-machine>.local:4711`
 from your phone). From there you can:
 
 - generate and print issues, browse the archive
-- set the **schedule**: on/off, time of day, and which weekdays (the scheduler
-  runs inside the server — catch-up after sleep, max 3 attempts/day)
+- set the **schedule**: time of day, which weekdays, and one of three modes —
+  **auto** (generate fully), **ask first** (see below), or **off** (the
+  scheduler runs inside the server — catch-up after sleep, max 3 attempts/day)
 - set **interests** that bias story selection (main news keeps the leads)
 - toggle **sources**, pick a **printer** and enable **auto-print**
 - rename the paper, tune image quality and page density
+
+### Ask-first mode: approve from your phone
+
+Image rendering is the expensive part (~$0.45 of the ~$0.50 issue). In
+**ask-first** mode the scheduler only runs the cheap text pipeline (~$0.02),
+then pushes a notification to your phone via [ntfy](https://ntfy.sh) with the
+day's lead headlines and an **Approve** button. Nothing renders until you tap
+it (the button reaches your machine over LAN/Wi-Fi; the pending draft can also
+be approved from the control panel).
+
+Setup: install the ntfy app, subscribe to a secret topic name of your choice,
+enter the same topic in the control panel, and hit "Test notification".
 
 All of it lives in `settings.json` and applies from the next issue.
 
