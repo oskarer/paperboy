@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Kontrollpanel</title>
     <link rel="stylesheet" href="./frontend/globals.css" />
+    <script>
+      // Apply the .dark token set when the OS prefers dark. Runs before render to avoid a flash.
+      try {
+        if (matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.classList.add("dark");
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

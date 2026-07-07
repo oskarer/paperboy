@@ -69,6 +69,9 @@ export function TodayCard({ status, refresh }: { status: Status; refresh: () => 
               {status.generating && <Loader2 className="size-4 animate-spin" aria-hidden />}
               {line.text}
             </p>
+            {!status.todayHasIssue && !status.generating && !status.draftPending && (
+              <p className="text-sm text-muted-foreground">Tryck ”Generera nu” för att skapa dagens tidning.</p>
+            )}
             <p className="text-sm text-muted-foreground">
               {status.todayCostUsd != null && <>Kostnad i dag: ${status.todayCostUsd.toFixed(2)} · </>}
               {status.cumulativeUsd != null && <>totalt: ${status.cumulativeUsd.toFixed(2)} · </>}

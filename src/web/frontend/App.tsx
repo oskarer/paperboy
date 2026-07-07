@@ -51,7 +51,7 @@ export function App() {
           print-news · öppen källkod · MIT
         </footer>
       </main>
-      <Toaster position="bottom-center" />
+      <Toaster position="bottom-center" richColors />
     </div>
   );
 }

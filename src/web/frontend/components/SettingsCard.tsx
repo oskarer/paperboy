@@ -127,7 +127,7 @@ export function SettingsCard({
             <div className="space-y-2">
               <Label>Läge</Label>
               <Select value={settings.schedule.mode} onValueChange={(mode) => set("schedule", { ...settings.schedule, mode: mode as Settings["schedule"]["mode"] })}>
-                <SelectTrigger className="w-56">
+                <SelectTrigger className="w-full sm:w-72">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -299,7 +299,7 @@ export function SettingsCard({
           </div>
         </Section>
 
-        <div className="sticky bottom-4 flex justify-end">
+        <div className="sticky bottom-0 -mx-6 -mb-6 mt-4 flex justify-end gap-2 rounded-b-xl border-t bg-card/95 px-6 py-3 backdrop-blur supports-[backdrop-filter]:bg-card/80">
           <Button onClick={save} disabled={saving}>
             <Save aria-hidden /> {saving ? "Sparar…" : "Spara inställningar"}
           </Button>

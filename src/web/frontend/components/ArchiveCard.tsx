@@ -26,8 +26,8 @@ export function ArchiveCard({ issues }: { issues: Issue[] }) {
         {issues.length === 0 && <p className="text-sm text-muted-foreground">Inga nummer ännu.</p>}
         <ul className="divide-y">
           {issues.map((issue) => (
-            <li key={issue.date} className="flex items-center justify-between py-2.5 text-sm">
-              <span>
+            <li key={issue.date} className="flex flex-wrap items-center justify-between gap-y-1 py-2.5 text-sm">
+              <span className="whitespace-nowrap">
                 🗞 {issue.date}
                 {issue.costUsd != null && (
                   <span className="ml-2 text-xs text-muted-foreground">${issue.costUsd.toFixed(2)}</span>
