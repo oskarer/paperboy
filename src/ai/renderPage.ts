@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { dirname } from "node:path";
 import { toFile } from "openai";
 import { openai } from "./client.ts";
@@ -7,34 +7,9 @@ import { loadSettings } from "../settings.ts";
 import { STYLES, type StyleId } from "../styles.ts";
 import type { IssueData, PageSpec, Story } from "../types.ts";
 import type { CostGuard } from "../cost/guard.ts";
+import { downloadPhotos, type Photo } from "../render/photos.ts";
 
 const EST_PAGE_USD = 0.15; // conservative pre-call estimate for the guard
-
-interface Photo {
-  buffer: ArrayBuffer;
-  mime: string;
-  storyIndex: number;
-}
-
-async function downloadPhotos(page: PageSpec): Promise<Photo[]> {
-  const photos: Photo[] = [];
-  for (const [i, story] of page.stories.entries()) {
-    if (!story.imageUrl || photos.length >= config.maxPhotosPerPage) continue;
-    try {
-      const res = await fetch(story.imageUrl, { signal: AbortSignal.timeout(15_000) });
-      if (!res.ok) continue;
-      const mime = res.headers.get("content-type")?.split(";")[0] ?? "image/jpeg";
-      if (!/image\/(jpeg|png|webp)/.test(mime)) continue;
-      const buffer = await res.arrayBuffer();
-      // SVT's "no photo" fallback is a blurry logo card that compresses tiny — skip those.
-      if (buffer.byteLength < 12_000) continue;
-      photos.push({ buffer, mime, storyIndex: i });
-    } catch {
-      // photo is optional — skip on any failure
-    }
-  }
-  return photos;
-}
 
 function roleLabel(story: Story, index: number, leadIndex: number): string {
   if (index === leadIndex) return "LEAD STORY (largest headline, top of page)";
@@ -130,6 +105,8 @@ export async function renderPage(
       if (!b64) throw new Error("image API returned no b64_json");
       mkdirSync(dirname(outFile), { recursive: true });
       writeFileSync(outFile, Buffer.from(b64, "base64"));
+      // Drop any vector twin from an earlier HTML render — assemblePdf prefers it.
+      rmSync(outFile.replace(/\.png$/, ".pdf"), { force: true });
       const usd = guard.recordImage(label, config.imageModel, rsp.usage, EST_PAGE_USD);
       console.log(`   ${label} → ${outFile} ($${usd.toFixed(3)})`);
       return;

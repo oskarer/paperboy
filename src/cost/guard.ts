@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 const PRICES_PER_M = {
   "gpt-5.4-nano": { textIn: 0.2, textOut: 1.25 },
   "gpt-5.4-mini": { textIn: 0.75, textOut: 4.5 },
+  "gpt-5.6-sol": { textIn: 5, textOut: 30 },
   "gpt-image-2": { textIn: 5, imageIn: 8, imageOut: 30 },
   "gpt-image-1-mini": { textIn: 2, imageIn: 2.5, imageOut: 8 },
 } as const;

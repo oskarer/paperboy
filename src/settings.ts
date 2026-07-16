@@ -39,6 +39,8 @@ export const SettingsSchema = z.object({
       printerName: z.string().nullable().default(null),
     })
     .default({ autoPrint: false, printerName: null }),
+  /** image = gpt-image-2 paints the page · html = AI-composed layout rendered in Chromium */
+  renderBackend: z.enum(["image", "html"]).default("image"),
   imageQuality: z.enum(["low", "medium", "high"]).default("medium"),
   density: z.enum(["normal", "compact"]).default("compact"),
   /** Visual style of the rendered pages — see src/styles.ts */

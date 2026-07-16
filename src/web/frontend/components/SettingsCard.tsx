@@ -269,6 +269,21 @@ export function SettingsCard({
         <Section title="Kvalitet & täthet">
           <div className="flex flex-wrap gap-4">
             <div className="space-y-2">
+              <Label>Renderingsmotor</Label>
+              <Select
+                value={settings.renderBackend}
+                onValueChange={(b) => set("renderBackend", b as Settings["renderBackend"])}
+              >
+                <SelectTrigger className="w-64">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="image">AI-bild (gpt-image-2, ~$0,30/sida)</SelectItem>
+                  <SelectItem value="html">HTML (AI-layout, ~$0,06/sida)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Bildkvalitet</Label>
               <Select
                 value={settings.imageQuality}

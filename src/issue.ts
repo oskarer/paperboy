@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { config } from "./config.ts";
 import { CostGuard } from "./cost/guard.ts";
 import { buildIssueData } from "./pipeline.ts";
-import { renderPage } from "./ai/renderPage.ts";
+import { closeBrowser, renderPage } from "./render/index.ts";
 import { assemblePdf } from "./pdf/assemble.ts";
 import { printPdf } from "./print.ts";
 import type { Settings } from "./settings.ts";
@@ -35,10 +35,15 @@ export async function renderIssue(issue: IssueData, guard: CostGuard, settings: 
   const dir = issueDir(issue.date);
   console.log("⑤ Rendering pages…");
   const pngPaths: string[] = [];
-  for (const page of issue.pages) {
-    const outFile = join(dir, `page-${page.pageNumber}.png`);
-    await renderPage(page, issue, guard, outFile);
-    pngPaths.push(outFile);
+  try {
+    for (const page of issue.pages) {
+      const outFile = join(dir, `page-${page.pageNumber}.png`);
+      // Unattended runs must produce a paper — fall back to the image backend on failure.
+      await renderPage(page, issue, guard, outFile, { fallback: true });
+      pngPaths.push(outFile);
+    }
+  } finally {
+    await closeBrowser();
   }
 
   console.log("⑥ Assembling PDF…");

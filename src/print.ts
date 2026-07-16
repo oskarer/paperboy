@@ -29,7 +29,14 @@ export async function printPdf(
   printerName?: string | null,
 ): Promise<{ ok: boolean; message: string }> {
   // Duplex: flip on the long edge so an upright A4 stack reads front→back like a book.
-  const cmd = ["lp", ...(printerName ? ["-d", printerName] : []), "-o", "sides=two-sided-long-edge", pdfPath];
+  // Color pinned explicitly — photos print in color even if the queue default changes.
+  const cmd = [
+    "lp",
+    ...(printerName ? ["-d", printerName] : []),
+    "-o", "sides=two-sided-long-edge",
+    "-o", "ColorModel=RGB",
+    pdfPath,
+  ];
   const res = await run(cmd);
   return {
     ok: res.ok,
