@@ -6,7 +6,8 @@ export const config = {
   imageSize: { width: 1664, height: 2352 },
   maxPhotosPerPage: 4,
   photoWidth: 480,
-  issueCostCapUsd: 1.0,
+  // No per-issue cap: the guard still tracks and reports spend, but never aborts a render.
+  issueCostCapUsd: Infinity,
   devBudgetUsd: 10.0,
   outDir: "out",
   pages: [

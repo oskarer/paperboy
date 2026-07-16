@@ -44,7 +44,8 @@ export async function renderIssue(issue: IssueData, guard: CostGuard, settings: 
   console.log("⑥ Assembling PDF…");
   const pdfPath = join(dir, "issue.pdf");
   await assemblePdf(pngPaths, pdfPath, settings.paperName);
-  console.log(`✓ ${pdfPath} — total cost $${guard.totalUsd().toFixed(3)} (cap $${config.issueCostCapUsd})`);
+  const capNote = Number.isFinite(config.issueCostCapUsd) ? ` (cap $${config.issueCostCapUsd})` : "";
+  console.log(`✓ ${pdfPath} — total cost $${guard.totalUsd().toFixed(3)}${capNote}`);
 
   if (settings.printer.autoPrint) {
     console.log("⑦ Printing…");

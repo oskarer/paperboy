@@ -28,7 +28,8 @@ export async function printPdf(
   pdfPath: string,
   printerName?: string | null,
 ): Promise<{ ok: boolean; message: string }> {
-  const cmd = ["lp", ...(printerName ? ["-d", printerName] : []), pdfPath];
+  // Duplex: flip on the long edge so an upright A4 stack reads front→back like a book.
+  const cmd = ["lp", ...(printerName ? ["-d", printerName] : []), "-o", "sides=two-sided-long-edge", pdfPath];
   const res = await run(cmd);
   return {
     ok: res.ok,
