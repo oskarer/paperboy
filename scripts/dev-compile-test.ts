@@ -68,7 +68,7 @@ console.log(`photos: ${photos.length} (${photos.map((p) => `story ${p.storyIndex
 const warnings = normalizeLayout(layout, page, photos);
 if (warnings.length) console.log("normalize:", warnings.join(" | "));
 
-const html = compilePage({ layout, page, style, paperName: "TOBOBLADET", dateSv: issue.dateSv, photos });
+const html = compilePage({ layout, page, style, paperName: "MORGONBLADET", dateSv: issue.dateSv, photos });
 const pg = await newRenderPage();
 try {
   const m = await loadAndMeasure(pg, substitutePhotos(html, photos));

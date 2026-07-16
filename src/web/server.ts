@@ -311,4 +311,4 @@ Bun.serve({
   },
 });
 
-console.log(`print-news control panel: http://localhost:${PORT} (LAN: http://${hostname()}.local:${PORT})`);
+console.log(`paperboy control panel: http://localhost:${PORT} (LAN: http://${hostname()}.local:${PORT})`);

@@ -8,7 +8,7 @@ const A4 = { width: 595.28, height: 841.89 };
  * by the HTML backend) is preferred — text stays sharp at print resolution.
  * Pages without one (image backend) fall back to embedding the PNG.
  */
-export async function assemblePdf(pngPaths: string[], outPath: string, title = "print-news"): Promise<void> {
+export async function assemblePdf(pngPaths: string[], outPath: string, title = "paperboy"): Promise<void> {
   const doc = await PDFDocument.create();
   doc.setTitle(title);
   for (const path of pngPaths) {

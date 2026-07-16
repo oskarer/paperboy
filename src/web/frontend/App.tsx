@@ -48,7 +48,7 @@ export function App() {
         )}
         <ArchiveCard issues={issues} />
         <footer className="pb-6 pt-2 text-center text-xs text-muted-foreground">
-          print-news · öppen källkod · MIT
+          paperboy · öppen källkod · MIT
         </footer>
       </main>
       <Toaster position="bottom-center" richColors />

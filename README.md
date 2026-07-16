@@ -1,4 +1,4 @@
-# print-news 🗞
+# paperboy 🗞
 
 Your personal AI-generated morning newspaper. Every morning it fetches news
 from real news sites, an AI editor picks and prioritizes the best stories, and
@@ -45,7 +45,7 @@ feel like 1994, proceed.
 ## Quick start
 
 ```bash
-git clone <this-repo> && cd print-news
+git clone <this-repo> && cd paperboy
 bun install
 cp .env.example .env        # add your OPENAI_API_KEY
 bun run issue               # generate today's paper (~$0.50 in API cost)
@@ -126,8 +126,8 @@ in `src/auth.ts`.
 ## Uninstall
 
 ```bash
-launchctl bootout gui/$(id -u)/com.printnews.web
-rm ~/Library/LaunchAgents/com.printnews.web.plist
+launchctl bootout gui/$(id -u)/com.paperboy.web
+rm ~/Library/LaunchAgents/com.paperboy.web.plist
 ```
 
 ## License & fair use

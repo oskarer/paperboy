@@ -51,7 +51,7 @@ export async function fetchCandidates(
     jobs.map(async ({ feedUrl }) => {
       // Bun's fetch handles forced gzip (e.g. gp.se); parse the string.
       const res = await fetch(feedUrl, {
-        headers: { "User-Agent": "print-news/1.0 (personal morning paper)" },
+        headers: { "User-Agent": "paperboy/1.0 (personal morning paper)" },
         signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

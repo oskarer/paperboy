@@ -1,13 +1,13 @@
 #!/bin/bash
-# Installs the print-news web service (control panel + scheduler) as a macOS
+# Installs the paperboy web service (control panel + scheduler) as a macOS
 # LaunchAgent so it starts at login and stays running. Re-run after moving the
 # repo or to reinstall. Uninstall:
-#   launchctl bootout gui/$(id -u)/com.printnews.web
-#   rm ~/Library/LaunchAgents/com.printnews.web.plist
+#   launchctl bootout gui/$(id -u)/com.paperboy.web
+#   rm ~/Library/LaunchAgents/com.paperboy.web.plist
 set -euo pipefail
 cd "$(dirname "$0")"
 REPO="$(pwd)"
-LABEL="com.printnews.web"
+LABEL="com.paperboy.web"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 BUN="$(command -v bun || echo "$HOME/.bun/bin/bun")"
 

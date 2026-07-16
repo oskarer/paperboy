@@ -1,5 +1,5 @@
 {
-  "name": "print-news",
+  "name": "paperboy",
   "version": "1.0.0",
   "description": "Your personal AI-generated morning newspaper — scrapes news, lets AI pick and lay out stories, renders printable A4 broadsheet pages with gpt-image-2",
   "license": "MIT",
