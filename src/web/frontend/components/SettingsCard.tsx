@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { BellRing, Save, Settings2, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { BellRing, Save, Settings2 } from "lucide-react";
 import { STYLES, STYLE_IDS } from "../../../styles";
 import { SourcesSection } from "./SourcesSection";
 import { getPrinters, postTestNotification, putSettings, type Printer, type Settings } from "../api";
@@ -35,7 +36,6 @@ export function SettingsCard({
   onSaved: () => void;
 }) {
   const [printers, setPrinters] = useState<Printer[]>([]);
-  const [interestInput, setInterestInput] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -43,13 +43,6 @@ export function SettingsCard({
   }, []);
 
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => onChange({ ...settings, [key]: value });
-
-  const addInterests = () => {
-    const items = interestInput.split(",").map((v) => v.trim()).filter(Boolean);
-    if (items.length === 0) return;
-    set("interests", [...new Set([...settings.interests, ...items])]);
-    setInterestInput("");
-  };
 
   const save = async () => {
     setSaving(true);
@@ -189,36 +182,19 @@ export function SettingsCard({
 
         <Separator />
 
-        <Section title="Intresseområden">
-          <div className="flex flex-wrap gap-2">
-            {settings.interests.map((interest) => (
-              <Badge key={interest} variant="secondary" className="gap-1 pr-1">
-                {interest}
-                <button
-                  type="button"
-                  aria-label={`Ta bort ${interest}`}
-                  className="rounded-full p-0.5 hover:bg-muted-foreground/20"
-                  onClick={() => set("interests", settings.interests.filter((i) => i !== interest))}
-                >
-                  <X className="size-3" aria-hidden />
-                </button>
-              </Badge>
-            ))}
-            {settings.interests.length === 0 && (
-              <p className="text-xs text-muted-foreground">Inga ännu — nyheter som matchar viktas upp i urvalet.</p>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="t.ex. AI, Formel 1, Norrköping…"
-              value={interestInput}
-              onChange={(e) => setInterestInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addInterests())}
-            />
-            <Button variant="outline" onClick={addInterests}>
-              Lägg till
-            </Button>
-          </div>
+        <Section title="Intressen">
+          <Textarea
+            aria-label="Intressen"
+            placeholder="t.ex. Jag vill ha mycket utrikes och teknik, men inte så mycket sport…"
+            rows={3}
+            maxLength={500}
+            value={settings.interests}
+            onChange={(e) => set("interests", e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Fri text som väger urvalet mot det du vill läsa — en knuff, inget filter. Dagens viktigaste nyheter
+            behåller alltid topplatserna.
+          </p>
         </Section>
 
         <Separator />

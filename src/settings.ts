@@ -15,7 +15,8 @@ const SourceSchema = z.object({
 
 export const SettingsSchema = z.object({
   paperName: z.string().min(1).max(40).default("MORGONBLADET"),
-  interests: z.array(z.string()).default([]),
+  /** Free-text reader wishes that softly steer story selection (never a hard filter) */
+  interests: z.string().max(500).default(""),
   // User-managed source list (added by URL). Empty → defaultSources() is used at runtime.
   sources: z.array(SourceSchema).default([]),
   schedule: z
@@ -63,6 +64,8 @@ export function loadSettings(): Settings {
   }
   // Migrate old source-toggle map → source array (drop it; runtime falls back to defaults).
   if (raw && raw.sources && !Array.isArray(raw.sources)) delete raw.sources;
+  // Migrate old interest tags → free-text steering.
+  if (Array.isArray(raw?.interests)) raw.interests = raw.interests.join(", ");
 
   const parsed = SettingsSchema.safeParse(raw);
   const settings = parsed.success ? parsed.data : SettingsSchema.parse({});

@@ -65,7 +65,9 @@ from your phone). From there you can:
 - set the **schedule**: time of day, which weekdays, and one of three modes —
   **auto** (generate fully), **ask first** (see below), or **off** (the
   scheduler runs inside the server — catch-up after sleep, max 3 attempts/day)
-- set **interests** that bias story selection (main news keeps the leads)
+- describe your **interests** in free text ("lots of world news, not so much
+  sport") — it nudges story selection toward and away from topics without ever
+  excluding them (main news keeps the leads)
 - toggle **sources**, pick a **printer** and enable **auto-print**
 - rename the paper, tune image quality and page density
 

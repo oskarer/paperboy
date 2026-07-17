@@ -39,10 +39,10 @@ function buildSystemPrompt(settings: Settings): string {
   const minPerPage = dense ? 6 : 4;
   const frontPage = dense ? "6–7" : "4–5";
 
-  const interests =
-    settings.interests.length > 0
-      ? `\nLäsarens intresseområden: ${settings.interests.join(", ")}. Vikta upp artiklar som matchar dessa områden — de får gärna ta secondary- och brief-platser — men dagens viktigaste huvudnyheter behåller alltid lead-platserna.`
-      : "";
+  const steering = settings.interests.trim();
+  const interests = steering
+    ? `\nLäsarens önskemål: »${steering}«. Tolka det som mjuk vägledning, inte hårda regler: vikta upp ämnen läsaren vill se mer av och tona ner — men uteslut aldrig helt — sådant läsaren vill se mindre av. Behåll nyhetsbredden: varje sida speglar fortfarande dagens viktigaste nyheter inom sitt tema, och dagens viktigaste huvudnyheter behåller alltid lead-platserna.`
+    : "";
 
   return `Du är nyhetschef på en svensk morgontidning i tryckt format. Du får dagens kandidatartiklar (id, sektion, källa, rubrik, ingress) och ska sätta ihop tidningens ${config.pages.length} sidor.
 
