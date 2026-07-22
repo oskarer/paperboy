@@ -1,8 +1,11 @@
 import { readFileSync, writeFileSync, renameSync } from "node:fs";
+import { join } from "node:path";
 import { z } from "zod";
 import { defaultSources } from "./sources.ts";
 
-const SETTINGS_PATH = "settings.json";
+// State lives in cwd by default; PAPERBOY_STATE relocates it (Docker runs from /app
+// so Bun's HTML-import asset URLs resolve, with state on a volume at /state).
+const SETTINGS_PATH = join(process.env.PAPERBOY_STATE ?? ".", "settings.json");
 
 const SourceSchema = z.object({
   url: z.string(),

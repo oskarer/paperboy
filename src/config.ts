@@ -1,3 +1,5 @@
+import { join } from "node:path";
+
 export const config = {
   textModel: "gpt-5.4-nano",
   imageModel: "gpt-image-2",
@@ -20,7 +22,7 @@ export const config = {
   // No per-issue cap: the guard still tracks and reports spend, but never aborts a render.
   issueCostCapUsd: Infinity,
   devBudgetUsd: 10.0,
-  outDir: "out",
+  outDir: join(process.env.PAPERBOY_STATE ?? ".", "out"),
   pages: [
     { pageNumber: 1, title: "Förstasidan", brief: "dagens allra viktigaste nyheter oavsett ämne" },
     { pageNumber: 2, title: "Inrikes", brief: "svenska inrikesnyheter" },
